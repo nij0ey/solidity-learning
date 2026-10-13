@@ -14,7 +14,7 @@ contract MyToken {
 
     uint256 public totalSupply;
     mapping(address => uint256) public balanceOf;
-    mapping(address => mapping(address => uint256)) allowance; // 의미: 두번째 address가 uint256만큼 허용해도 되는지에 대한 매핑을 가진 첫번째 address
+    mapping(address => mapping(address => uint256)) public allowance; // 의미: 두번째 address가 uint256만큼 허용해도 되는지에 대한 매핑을 가진 첫번째 address
 
     constructor(
         string memory _name,
