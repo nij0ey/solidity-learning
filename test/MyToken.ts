@@ -41,6 +41,15 @@ describe("My Token", () => {
         MINTING_AMOUNT * 10n ** DECIMALS,
       ); // Bigint
     });
+
+    // TDD: Test Driven Development
+    it("should return or revert when minting infinitly", async () => {
+      const hacker = signers[2];
+      const mintingAgainAmount = hre.ethers.parseUnits("10000", DECIMALS);
+      await expect(
+        myTokenC.connect(hacker).mint(mintingAgainAmount, hacker.address),
+      ).to.be.revertedWith("You are not authorized to manage this token");
+    });
   });
   describe("Transfer", () => {
     it("should have 0.5MT", async () => {
@@ -125,15 +134,6 @@ describe("My Token", () => {
         MINTING_AMOUNT * 10n ** DECIMALS - amount,
       );
       expect(await myTokenC.balanceOf(signer1.address)).equal(amount);
-
-      console.log(
-        "signer0 balance:",
-        await myTokenC.balanceOf(signer0.address),
-      );
-      console.log(
-        "signer1 balance:",
-        await myTokenC.balanceOf(signer1.address),
-      );
     });
   });
 });
