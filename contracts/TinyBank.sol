@@ -50,23 +50,27 @@ contract TinyBank {
     }
 
     // 누가, 언제 호출?
-    function distributeReward(address to) internal {
-        uint256 blocks = block.number - lastClaimedBlock[to];
-        uint256 reward = (blocks * rewardPerBlock * staked[to]) / totalStaked;
-        stakingToken.mint(reward, to);
+    // 최초와 마지막일때 totalstaked가 0이 됨
+    modifier updateReward(address to) {
+        if (staked[to] > 0) {
+            uint256 blocks = block.number - lastClaimedBlock[to];
+            uint256 reward = (blocks * rewardPerBlock * staked[to]) /
+                totalStaked;
+            stakingToken.mint(reward, to);
+        }
         lastClaimedBlock[to] = block.number;
+        _; // motifier의 callers's code
     }
 
-    function stake(uint256 _amount) external {
+    function stake(uint256 _amount) external updateReward(msg.sender) {
         require(_amount >= 0, "cannot stake 0 amount");
-        distributeReward(msg.sender);
         stakingToken.transferFrom(msg.sender, address(this), _amount);
         staked[msg.sender] += _amount;
         totalStaked += _amount;
         emit Staked(msg.sender, _amount);
     }
 
-    function withdraw(uint256 _amount) external {
+    function withdraw(uint256 _amount) external updateReward(msg.sender) {
         require(staked[msg.sender] >= _amount, "insufficient staked token");
         stakingToken.transfer(_amount, msg.sender); //순서 중요!, msg.sender = tinybank
         staked[msg.sender] -= _amount;
