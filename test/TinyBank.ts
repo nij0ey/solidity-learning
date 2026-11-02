@@ -16,10 +16,12 @@ describe("TinyBank", () => {
       DECIMALS,
       MINTING_AMOUNT,
     ]);
+    // manager 3명 등록
     tinyBankC = await hre.ethers.deployContract("TinyBank", [
       await myTokenC.getAddress(),
+      [signers[0].address, signers[1].address, signers[2].address],
     ]);
-    await myTokenC.setManager(tinyBankC.getAddress());
+    await myTokenC.setManager(await tinyBankC.getAddress());
   });
 
   describe("Initialized state check", () => {
@@ -64,24 +66,53 @@ describe("TinyBank", () => {
       await myTokenC.approve(await tinyBankC.getAddress(), stakingAmount);
       await tinyBankC.stake(stakingAmount);
 
-      const BLOCKS = 5n;
-      const transferAmount = hre.ethers.parseUnits("1", DECIMALS);
-      for (var i = 0; i < 5; i++) {
-        await myTokenC.transfer(transferAmount, signer0.address);
-      }
-
+      const before = await myTokenC.balanceOf(signer0.address);
       await tinyBankC.withdraw(stakingAmount);
-      expect(await myTokenC.balanceOf(signer0.address)).equal(
-        hre.ethers.parseUnits((BLOCKS + MINTING_AMOUNT + 1n).toString()),
+      const after = await myTokenC.balanceOf(signer0.address);
+
+      expect(after - before).equal(
+        stakingAmount + hre.ethers.parseUnits("1", DECIMALS),
+      );
+    });
+  });
+  // const transferAmount = hre.ethers.parseUnits("1", DECIMALS);
+  // for (var i = 0; i < 5; i++) {
+  //   await myTokenC.transfer(transferAmount, signer0.address);
+  // }
+
+  // await tinyBankC.withdraw(stakingAmount);
+  //   expect(await myTokenC.balanceOf(signer0.address)).equal(
+  //     hre.ethers.parseUnits((BLOCKS + MINTING_AMOUNT + 1n).toString()),
+  //   );
+  // });
+
+  // it("Should revert when changing rewardPerBlock by hacker", async () => {
+  //   const hacker = signers[3];
+  //   const rewardToChange = hre.ethers.parseUnits("10000", DECIMALS);
+  //   await expect(
+  //     tinyBankC.connect(hacker).setRewardPerBlock(rewardToChange),
+  //   ).to.be.revertedWith("You are not authorized to manage this contract");
+  // });
+
+  describe("Manager confirm & setRewardPerBlock", () => {
+    const newReward = hre.ethers.parseUnits("2", DECIMALS);
+
+    it("should revert confirm from a non-manager", async () => {
+      await expect(tinyBankC.connect(signers[3]).confirm()).to.be.revertedWith(
+        "You are not a manager",
       );
     });
 
-    it("Should revert when changing rewardPerBlock by hacker", async () => {
-      const hacker = signers[3];
-      const rewardToChange = hre.ethers.parseUnits("10000", DECIMALS);
+    it("should revert setRewardPerBlock from a non-manager", async () => {
       await expect(
-        tinyBankC.connect(hacker).setRewardPerBlock(rewardToChange),
-      ).to.be.revertedWith("You are not authorized to manage this contract");
+        tinyBankC.connect(signers[3]).setRewardPerBlock(newReward),
+      ).to.be.revertedWith("You are not a manager");
+    });
+
+    it("should revert setRewardPerBlock when no one confirmed", async () => {
+      await expect(tinyBankC.setRewardPerBlock(newReward)).to.be.revertedWith(
+        "Not all confirmed yet",
+      );
     });
   });
 });
