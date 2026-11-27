@@ -79,6 +79,15 @@ contract TinyBank is ManagedAccess {
         emit Staked(msg.sender, _amount);
     }
 
+    function currentReward(address to) external view returns (uint256) {
+        if (staked[to] > 0) {
+            uint256 blocks = block.number - lastClaimedBlock[to];
+            return (blocks * rewardPerBlock * staked[to]) / totalStaked;
+        } else {
+            return 0;
+        }
+    }
+
     function withdraw(uint256 _amount) external updateReward(msg.sender) {
         require(staked[msg.sender] >= _amount, "insufficient staked token");
         stakingToken.transfer(_amount, msg.sender); //순서 중요!, msg.sender = tinybank
